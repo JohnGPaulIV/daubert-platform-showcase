@@ -1,80 +1,79 @@
-# Daubert Platform - Engineering Showcase
+# Daubert Platform — Engineering Showcase
 
-> **Public engineering case study.** The production source code, credentials, internal deployment configuration, and customer data are intentionally private.
+> **Public engineering case study.** Daubert is an active commercial project; production source code, credentials, internal deployment configuration, and non-public data are intentionally excluded from this repository.
 
-Daubert is a pilot-stage legal-tech platform designed around expert-witness engagements. This repository documents selected engineering work behind the platform without publishing the commercial codebase.
+Daubert is a pilot-stage legal-tech platform built around expert-witness engagements. This repository presents selected architecture, engineering decisions, workflows, testing strategy, and sanitized implementation examples from the private application.
 
-My work as a **Co-Founder & Full-Stack Engineer** has focused across the application stack: authenticated full-stack workflows, backend APIs, engagement-scoped authorization, financial data integrity, PostgreSQL data modeling, CSV ingestion/review, and containerized deployment.
+My work as a **Co-Founder & Full-Stack Engineer** spans authenticated full-stack workflows, backend APIs, engagement-scoped authorization, financial data integrity, PostgreSQL data modeling, CSV ingestion and review, and containerized deployment.
 
-## What this repository demonstrates
+## Engineering scope
 
-- **Full-stack architecture:** Next.js App Router frontend with server-side API/BFF routes backed by an Express + TypeScript service layer.
-- **Authentication & authorization:** Supabase Auth for identity, with matter-level authorization enforced independently from organization membership.
-- **Financial correctness:** Money represented as integer cents, engagement-specific rate snapshots, and server-authoritative calculations.
-- **Auditable ledger design:** Non-deletable ledger records, explicit lifecycle states, update history, and role-aware visibility.
-- **CSV ingestion:** Source detection, column mapping, validation, human review, and controlled publication into the engagement ledger.
-- **Defense in depth:** Validation, service-layer policy checks, query-level isolation, database constraints, and restrictive database policies using RLS.
-- **Testing:** Unit coverage for financial derivations, validation, permissions, and CSV handling, plus an integration/readiness harness for authorization boundaries.
+- **Full-stack architecture:** Next.js App Router frontend with server-side application routes backed by an Express + TypeScript API.
+- **Authentication and authorization:** Supabase Auth for identity, with engagement-level access enforced separately from organization membership.
+- **Financial correctness:** Integer-cent money representation, engagement-specific rate snapshots, and server-authoritative calculations.
+- **Auditable ledger workflows:** Explicit lifecycle states, update history, and role-aware visibility.
+- **CSV ingestion:** Source detection, column mapping, normalization, validation, human review, and controlled publication.
+- **Defense in depth:** Runtime validation, service-layer policy checks, query-level isolation, database constraints, and restrictive data-access policies.
+- **Verification:** Unit tests for financial derivations, validation, authorization policy behavior, and CSV handling, plus a backend-focused readiness harness for access-control boundaries.
 
 ## Product workflow
 
 1. An expert defines a reusable standing rate schedule.
-2. A new engagement captures a **snapshot** of the applicable rates and financial terms.
+2. A new engagement captures the applicable rates and financial terms in an **engagement-specific snapshot**.
 3. Expert-side participants record work manually or import time entries from CSV.
-4. Imported rows are parsed and reviewed before publication; source-provided rates never override the engagement snapshot.
-5. A shared compensation ledger exposes only the records each participant is authroized to see.
-6. Derived financial summaries show accrued compensation, retainer remaining, and budget utilization.
+4. Imported rows are parsed, normalized, validated, and reviewed before publication.
+5. The server resolves authoritative rates and calculated amounts from the engagement snapshot.
+6. A shared compensation ledger exposes records according to engagement role and lifecycle state.
+7. Derived summaries report accrued compensation, retainer remaining, and authorized-budget utilization.
 
-## Architecture
+## System architecture
 
 ```mermaid
 flowchart LR
-    U[Browser] --> N[Next.js App Router<br/>UI + server-side BFF routes]
+    U[Browser] --> N[Next.js App Router<br/>UI + server-side application routes]
     N <--> S[Supabase Auth]
-    N -->|verified access token| A[Express + TypeScript API]
-    A -->|claims / identity verification| S
-    A --> V[Zod validation + service policies]
+    N -->|authenticated API request| A[Express + TypeScript API]
+    A -->|verify identity claims| S
+    A --> V[Zod validation + domain policies]
     V --> R[Repository / SQL layer]
     R --> P[(PostgreSQL)]
     A --> M[Postmark email]
-    D[Dockerized deployment] -. packages .-> N
+    D[Docker deployment] -. packages .-> N
     D -. packages .-> A
 ```
 
-The browser does not need direct access to privileged application database operations. Server-side Next.js routes forward authenticated requests to Express, where business rules, authorization, transactions, and persistence are enforced.
+Privileged application writes are routed through the backend, where authentication, authorization, business rules, transactions, and persistence are enforced.
 
-More detail: [Architecture](docs/ARCHITECTURE.md)
+[Read the architecture overview →](docs/ARCHITECTURE.md)
 
-## Selected engineering challenges
+## Engineering highlights
 
 ### Engagement-scoped authorization
 
-Organization membership and engagement access are intentionally separate concepts. A user being part of a law firm does **not** automatically grant access to every matter associated with that firm.
+Organization membership and engagement access are separate concepts. Membership in a law firm does **not** automatically grant access to every matter associated with that organization.
 
-The current role model distinguishes:
+| Capability                            | Lead expert | Collaborator | Attorney |
+| ------------------------------------- | :---------: | :----------: | :------: |
+| View shared/non-staged ledger records |     Yes     |     Yes      |   Yes    |
+| View staged records                   |     All     |   Own only   |    No    |
+| Create expert-side ledger records     |     Yes     |     Yes      |    No    |
+| Edit eligible accrued records         |     Yes     |   Own only   |    No    |
+| Publish staged records                |     Yes     |      No      |    No    |
+| Import / preview CSV                  |     Yes     |     Yes      |    No    |
 
-| Capability                 | Lead expert | Collaborator | Attorney |
-| -------------------------- | :---------: | :----------: | :------: |
-| View shared ledger records |      ✓      |      ✓       |    ✓     |
-| View staged work           |     All     |   Own only   |    —     |
-| Create expert-side work    |      ✓      |      ✓       |    —     |
-| Publish staged work        |      ✓      |      —       |    —     |
-| Edit eligible accrued work |      ✓      |   Own only   |    —     |
-| Import / preview CSV       |      ✓      |      ✓       |    —     |
+[Read the authorization model →](docs/AUTHORIZATION_MODEL.md)
 
-See [Authorization Model](docs/AUTHORIZATION_MODEL.md).
+### Financial and historical integrity
 
-## Financial data integrity
+Several design choices prevent historical drift and reduce monetary-calculation errors:
 
-Several design choices reduce historical drift and rouding errors:
+- Monetary values are stored and processed as **integer cents**.
+- Engagements preserve an **engagement-specific rate schedule snapshot**.
+- Later changes to an expert's standing rates do not silently alter existing engagement terms.
+- Imported rates are treated as source metadata; authoritative applied rates are resolved by the server.
+- Derived financial totals are calculated from authoritative ledger state rather than client-submitted totals.
 
-- Monetary values are represented as **integer cents**.
-- An engagement receives a **rate schedule snapshot** when it is created.
-- Later changes to an expert's standing rates do not retrocatively change existing engagement rates.
-- Imported CSV rates are treated as source metadata; the server resolves the rate actually applied from the engagement snapshot.
-- Drived totals are calculated from authoritative ledger state rather than trusting client-calculated values.
-
-See [Data Integrity](docs/DATA_INTEGRITY.md)
+[Read the data-integrity design →](docs/DATA_INTEGRITY.md)
 
 ### Review-first CSV ingestion
 
@@ -85,82 +84,99 @@ flowchart LR
     P --> M[Map columns]
     M --> N[Normalize rows]
     N --> S[Resolve against engagement snapshot]
-    S --> R[Human review / correction]
+    S --> R[Review / correction]
     R --> C{Valid?}
     C -->|yes| W[Transactional publish]
     C -->|no| R
 ```
 
-See [CSV IMport Pipeline](docs/CSV_IMPORT_PIPELINE.md)
+The import pipeline separates parsing, mapping, normalization, business validation, rate resolution, and publication so external data cannot bypass engagement rules.
 
-## Testing approach
+[Read the CSV import design →](docs/CSV_IMPORT_PIPELINE.md)
 
-The private code snapshot represented by this showcase contains **45 Node test cases across four TypeScript test files** covering financial derivations, ledger input rules, authorization policy behavior, and CSV parsing/import behavior.
+## Product views
 
-A separate backend-focused readiness harness exercises important boundaries without relying on UI hiding, including:
+All public screenshots use synthetic demonstration data.
 
-- unauthenticated requests;
+### Engagement workspace
+
+![Daubert engagement overview](assets/screenshots/03-engagement-overview.png)
+
+The engagement workspace combines matter details with derived financial context such as accrued compensation, retainer remaining, and authorized-budget utilization.
+
+### Compensation ledger
+
+![Daubert compensation ledger](assets/screenshots/04-billing-ledger.png)
+
+The billing workflow pairs the engagement's frozen rate schedule with a role-aware compensation ledger.
+
+### CSV review workflow
+
+![Daubert CSV review workflow](assets/screenshots/05-csv-review.png)
+
+Imported time entries are staged for review, validation, correction, or removal before controlled publication.
+
+Additional product views are documented in the [Product Walkthrough](docs/PRODUCT_WALKTHROUGH.md).
+
+## Testing and verification
+
+The private code snapshot represented by this showcase contains **45 Node test cases across four TypeScript test files**:
+
+| Area                         |  Tests |
+| ---------------------------- | -----: |
+| Financial and derived values |     24 |
+| Ledger authorization policy  |     11 |
+| CSV import behavior          |      5 |
+| Ledger input validation      |      5 |
+| **Total**                    | **45** |
+
+A separate backend-focused readiness harness exercises boundaries including:
+
+- unauthenticated request rejection;
 - cross-engagement isolation;
-- stages-record visibility;
+- staged-record visibility;
 - direct-ID mutation attempts;
-- shared financial-summary consistency
-- CSV preview/publish permissions;
-- "same organization but not on matter" access;
-- platform-administrator separation.
+- shared financial-summary consistency;
+- CSV preview and publication permissions;
+- same-organization-but-not-on-matter access;
+- platform-administrator separation from matter participation.
 
-This repository intentionally documents those categories rather than publishing the internal test harness.
+The internal test harness and its environment-specific fixtures remain private.
 
-See [Testing & Verification](docs/TESTING.md)
+[Read the testing strategy →](docs/TESTING.md)
 
 ## Technology
 
-**Frontend:** TypeScript, React, Next.js App Router, Tailwind CSS
-**Backend:** TypeScript, Express, Zod, Node.js
-**Data & identity:** PostgreSQL, Supabase Auth
-**Infrastructure:** Docker, container networking, external reverse-proxy/tunnel deployment
-**Integrations:** Postmark email
-**Engineering:** REST APIs, transaction boundaries, row-level/query-level authorization, server-side validation
-
-## Screenshots
-
-Use synthetic demo data only. The recommended public screenshot set is documented in
-['assets/screenshots/README.md'](assets/screenshots/README.md)
-
-Suggested gallery:
-
-| View                         | What it demonstrates                                       |
-| ---------------------------- | ---------------------------------------------------------- |
-| `01-dashboard.png`           | Role-aware workspace and recent engagements                |
-| `02-create-engagement.png`   | Matter terms, financial inputs, and rate snapshot workflow |
-| `03-engagement-overview.png` | Matter details plus accrued/retainer/budget summaries      |
-| `04-billing-ledger.png`      | Frozen rate schedule and shared compensation ledger        |
-| `05-csv-review.png`          | Review-first CSV import with valid/warning/error states    |
-| `06-standing-rates.png`      | Reusable expert standing-rate management                   |
-| `07-attorney-read-only.png`  | Role-aware, read-only counsel experience                   |
-| `08-mobile.png`              | Responsive application shell                               |
+| Layer                | Technologies                                                               |
+| -------------------- | -------------------------------------------------------------------------- |
+| Frontend             | TypeScript, React, Next.js App Router, Tailwind CSS                        |
+| Backend              | TypeScript, Node.js, Express, Zod                                          |
+| Data & identity      | PostgreSQL, Supabase Auth                                                  |
+| Infrastructure       | Docker, container networking, reverse-proxy/tunnel deployment              |
+| Integrations         | Postmark                                                                   |
+| Engineering patterns | REST APIs, transactions, query-level authorization, server-side validation |
 
 ## Sanitized implementation examples
 
-The files under ['examples/'](examples/) are **illustrative rewrites**, not copied production source code. They demonstrate selected engineering patterns while deliberately omitting internal schemas, endpoint structure, identifiers, infrastructure details, and proprietary implementation logic.
+The files in [`examples/`](examples/) are intentionally simplified rewrites of selected engineering patterns. They are **not copied production source** and omit private schemas, route structure, identifiers, infrastructure details, and proprietary implementation logic.
 
-- [`authorization-policy.ts`](examples/authorization-policy.ts)
-- [`financial-calculations.ts`](examples/financial-calculations.ts)
-- [`service-boundary.ts`](examples/service-boundary.ts)
-- [`csv-import-pipeline.ts`](examples/csv-import-pipeline.ts)
+- [`authorization-policy.ts`](examples/authorization-policy.ts) — role, ownership, and lifecycle-aware access decisions
+- [`financial-calculations.ts`](examples/financial-calculations.ts) — integer-cent financial calculations
+- [`service-boundary.ts`](examples/service-boundary.ts) — validation, authorization, transactions, and server-authoritative writes
+- [`csv-import-pipeline.ts`](examples/csv-import-pipeline.ts) — review candidates and snapshot-based rate resolution
 
-## Selected desing decisions
+## Documentation
 
-See [Engineering Decisions](docs/ENGINEERING_DECISIONS.md)
-
-- separating organization membership from matter access;
-- using integer cents for money;
-- snapshotting rates at engagement creation;
-- routing privileged writes through the backend;
-- validating at API, service, query, and database boundaries;
-- making imported financial data advisory until server-authoritative review/publish.
+- [Architecture](docs/ARCHITECTURE.md)
+- [Authorization Model](docs/AUTHORIZATION_MODEL.md)
+- [Financial & Data Integrity](docs/DATA_INTEGRITY.md)
+- [CSV Import Pipeline](docs/CSV_IMPORT_PIPELINE.md)
+- [Testing & Verification](docs/TESTING.md)
+- [Selected Engineering Decisions](docs/ENGINEERING_DECISIONS.md)
+- [Product Walkthrough](docs/PRODUCT_WALKTHROUGH.md)
 
 ## Source availability
 
-Daubert is an active commercial project, so the complete source doe and deployment configuration are not public. This repository exists to show the **engineering approach, architecture, and selected implementation patterns** without exposing the private product.
+Daubert is an active commercial project. The production repository, database migrations, credentials, deployment configuration, internal test harnesses, and complete application source are not distributed publicly.
 
-For recruiting or technical discussion, I can walk through additional design decisions and implementation tradeoffs wihtout distributing the private repository.
+This showcase is limited to selected architecture, engineering rationale, product views, testing strategy, and intentionally sanitized implementation examples.

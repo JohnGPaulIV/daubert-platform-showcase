@@ -1,69 +1,71 @@
 # Selected Engineering Decisions
 
-## 1. Organization membership does not imply matter access
+This document summarizes several design decisions that materially shaped the current Daubert implementation.
+
+## 1. Separate organization membership from matter access
 
 **Problem:** A law-firm user may belong to an organization without being assigned to every confidential engagement handled by that firm.
 
 **Decision:** Model organization membership and engagement participation separately.
 
-**Result:** Matter access can be granted explicitly and tested independently from firm membership.
+**Result:** Matter access is granted explicitly and can be verified independently from firm membership.
 
 ---
 
-## 2. Use integer cents for money
+## 2. Represent money as integer cents
 
-**Problem:** Floating-point arithmetic is a poor canonical representation for currency.
+**Problem:** Binary floating-point arithmetic is a poor canonical representation for currency.
 
-**Decision:** Parse dollar inputs at the boundary and carry monetary values internally as integer cents.
+**Decision:** Parse dollar inputs at the application boundary and carry monetary values through the backend as integer cents.
 
-**Result:** Financial calculations have an explicit, testable representation and can be checked for safe-integer overflow.
-
----
-
-### 3. Snapshot rates at engagement creation
-
-**Problem:** An expert's standing rate can change while an older engagement is still active.
-
-**Decision:** Copy the applicable standing schedule into an engagement-specific snapshot.
-
-**Result:** Existing matters continue to use the terms that were captured for that engagement instead of silently drifting when standing rates change.
+**Result:** Monetary calculations use an explicit, testable representation and can be checked against safe-integer limits.
 
 ---
 
-## 4. Make imported rates non-authoritative
+## 3. Snapshot rates when an engagement is created
 
-**Problem:** A CSV export can contain stale, malformed, or unexpected rate values.
+**Problem:** An expert's standing rates can change while an older engagement remains active.
 
-**Decision:** Treat imported rates as source metadata and resolve authoritative rates from the engagement snapshot.
+**Decision:** Preserve the applicable rate schedule as an engagement-specific snapshot.
 
-**Result:** External data can assist matching and review without overriding the platform's contractual/engagement terms.
-
----
-
-## 5. Put privileged writes behind the backend
-
-**Problem:** Business rules become difficult to audit when multiple clients can write directly to core tables.
-
-**Decision:** Rout application writes through the Express service layer.
-
-**Result:** Validation, authorization, calculations, transactions, and persistence can be enforced consistently.
+**Result:** Existing matters continue to use the rates captured for that engagement instead of silently changing when standing rates are updated.
 
 ---
 
-## 6. Enforce authorization before UI
+## 4. Treat imported rates as non-authoritative
 
-**Problem:** Frontend-only access control is bypassable.
+**Problem:** A CSV export may contain stale, malformed, or unexpected rate values.
 
-**Decision:** Treat the backend/query layer as the security boundary and the UI as a convenience layer.
+**Decision:** Use imported rates as source metadata while resolving authoritative applied rates from the engagement snapshot.
 
-**Result:** Direct HTTP requests and known identifiers still pass through matter-level authorization.
+**Result:** External data can assist matching and review without overriding the engagement's captured terms.
 
 ---
 
-## 7. Preserve ledger history
+## 5. Route privileged writes through the backend
 
-**Problem:** Hard deletion can erase the context needed to explain prior financial state.
+**Problem:** Business invariants are harder to enforce when multiple clients can write directly to core application tables.
 
-**Decision:** Prevent normal ledger deletion and use explicit lifecycle transitions such as withdrawal, with separate update history.
+**Decision:** Route privileged application writes through the Express service layer.
 
-**Result:** The record remains explainable without pretending that every field is forever immutable.
+**Result:** Validation, authorization, calculations, transactions, and persistence rules are enforced through a consistent server boundary.
+
+---
+
+## 6. Treat the backend as the authorization boundary
+
+**Problem:** Frontend-only access control can be bypassed through direct requests.
+
+**Decision:** Enforce matter-level authorization in backend policies and data-access paths, with the interface reflecting those decisions rather than defining them.
+
+**Result:** Known identifiers and direct HTTP requests still pass through engagement-level authorization.
+
+---
+
+## 7. Preserve ledger history through lifecycle state
+
+**Problem:** Hard deletion can remove context needed to explain prior financial activity.
+
+**Decision:** Use explicit ledger lifecycle transitions, including withdrawal, while maintaining separate update history.
+
+**Result:** The system can represent reversals and changes without relying on deletion as the normal mechanism for rewriting history.

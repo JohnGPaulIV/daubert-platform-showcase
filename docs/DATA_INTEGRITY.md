@@ -1,86 +1,111 @@
 # Financial & Data Integrity
 
-Financial workflows are designed around the idea that **stored history should remain explainable later**.
+Daubert's financial workflows are designed around a simple requirement:
+
+> **Historical financial state should remain explainable later.**
+
+That requirement influences how money, rates, ledger transitions, and imported data are represented.
 
 ## Integer-cent money
 
-Application money is represented as integer cents rather that floating-point dollar values.
+Monetary values are stored and processed as integer cents rather than using floating-point dollar values as the canonical representation.
+
+User-facing dollar values are parsed at the application boundary before entering the domain model.
 
 Illustrative example:
 
 ```ts
-type Cents = number & { readonly __brand: "Cents" };
+type Cents = number & {
+  readonly __brand: "Cents";
+};
 
-function calculateAmount(quantity: number, rate: Cents): Cents {
-  const value = Math.round(quantity * rate);
+function calculateAmount(
+  quantity: number,
+  rateApplied: Cents,
+): Cents {
+  const amount = Math.round(
+    quantity * rateApplied,
+  );
 
-  if (!Number.isSafeInteger(value)) {
-    throw new Error("Unsafe monetary value");
+  if (!Number.isSafeInteger(amount)) {
+    throw new Error(
+      "Calculated amount is outside the safe integer range.",
+    );
   }
 
-  return value as Cents;
+  return amount as Cents;
 }
 ```
 
-This avoids using binary floating-point values as the canonical representation of currency.
+This keeps currency representation explicit and avoids treating binary floating-point dollar arithmetic as authoritative.
 
-## Frozen rate schedules
+## Engagement-specific rate snapshots
 
-Expert maintain reusable standing rates, but an engagement should preserve the rates that applied when that engagement was created.
-
-## Frozen rate schedules
-
-Experts maintain reusable standing rates, but an engagement should preserve the rates that applied when that engagement was created.
+Experts can maintain reusable standing rates, while each engagement preserves the schedule applicable to that matter.
 
 ```mermaid
 flowchart TD
-    S[Standing rates] --> V[Validate]
+    S[Standing rate schedule] --> V[Validate]
     V --> C[Create engagement]
-    C --> F[Frozen engagement rate snapshot]
+    C --> F[Engagement rate snapshot]
     F --> L1[Manual ledger entry]
     F --> L2[Imported ledger entry]
-    F --> L3[Later recalculation / edit]
+    F --> L3[Authorized later update]
 ```
 
-Changing a standing rate later affects future engagements, not the historical snapshot used by an existing matter.
+A later change to an expert's standing rates applies to future work configuration without silently rewriting the historical rate schedule captured for an existing engagement.
 
 ## Server-authoritative calculations
 
-Clients may submit work date, activity, quantity, and other allowed inputs, but the server is responsible for resolving:
+Clients may submit permitted inputs such as:
 
-- the applicable rate;
-- the resulting monetary amount;
-- the actor identity;
-- allowed lifecycle state transitions.
+- work date;
+- activity;
+- quantity;
+- note content.
 
-The client cannot make a financial value authoritative simply by including it in the request.
+The server remains responsible for resolving:
 
-## CSV source rates are advisory
+- the applicable engagement rate;
+- the calculated monetary amount;
+- the authenticated actor;
+- permitted lifecycle transitions.
 
-Imported systems may contain a rate column. That value is useful for source detection and review, but it does not replace the engagement's authoritative snapshot.
+Client-submitted financial values do not become authoritative simply because they appear in a request.
 
-If the source rate differs from the engagement rate, the workflow can warn the reviewer while still calculating from the engagement snapshot.
+## Imported rates are advisory
+
+External time-entry exports may include a rate column. That source rate is useful for detection and review, but it does not replace the engagement's authoritative snapshot.
+
+When an imported source rate differs from the engagement rate, the review workflow can surface the mismatch while the server continues to calculate from the engagement snapshot.
 
 ## Transaction boundaries
 
-Mutations that depend on current ledger state are performed inside database transactions. Where a decision could be invalidated by a concurrent update, the row is locked before applying the transition.
+Mutations that depend on current ledger state are performed within database transactions. Where a state decision could become stale during a concurrent update, the target state is loaded and protected before the mutation is applied.
 
 Conceptually:
 
 ```text
 BEGIN
   load authorized mutation context
-  lock target row
-  validate current state
-  recompute server-authoritative values
-  write update + audit/update record
+  lock current target state
+  validate lifecycle transition
+  resolve authoritative rate
+  recompute derived monetary value
+  write mutation and update history
 COMMIT
 ```
 
-## Ledger history
+## Ledger lifecycle and history
 
-The ledger is designed so records are not simply deleted to erase history. Lifecycle transitions such as withdrawal preserve the record while changing whether it contributes to active accrued work.
+Ledger entries use explicit lifecycle states including:
 
-Creation timestamps are protected, and update history is recorded separately.
+- `staged`
+- `accrued`
+- `invoiced`
+- `paid`
+- `withdrawn`
 
-This is an auditability choice rather than a claim that every field can never change.
+The normal workflow preserves records through state transitions rather than using deletion as the mechanism for reversing history. Update history is stored separately so later changes can remain attributable.
+
+This is an auditability design: records may move through supported states while the system retains the context needed to explain prior financial activity.

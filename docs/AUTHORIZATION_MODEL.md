@@ -4,63 +4,65 @@
 
 **Organization membership is not engagement access.**
 
-A user may belong to the same organization as another participant and still have no right to view a matter. Access is based on explicit engagement participation.
+A user may belong to the same organization as another participant without having access to the same legal matter. Engagement access depends on explicit engagement participation rather than broad organizational membership.
 
-This prevents a common multi-tenant failure mode where broad organization membership accidentally becomers a substitute for matter-level authorization.
+This distinction reduces the risk of a multi-tenant authorization error in which firm membership unintentionally exposes unrelated matters.
 
-## Roles
+## Engagement roles
 
 The current engagement model distinguishes three participant roles:
 
-- **lead expert** - controls expert-side publication and can review the engagement's staged expert work.
-- **Collaborator** - can contribute expert-side work but receives narrower visibility and mutation permissions.
-- **Attorney** - participates on the counsel side an receives the shared, published financial view without expert-side staging privileges.
+- **Lead expert** — can review all staged expert-side work and controls publication of staged entries.
+- **Collaborator** — can contribute expert-side work, with narrower visibility and mutation permissions.
+- **Attorney** — participates on the counsel side and receives access to the shared/non-staged ledger without expert-side staging privileges.
 
-A separate platform-administrator path exists for internal administrator. Admistrative status does not implicitly make someone a participant in a matter.
+Platform administration is handled separately. Administrative status does not automatically make an administrator a participant in a matter.
 
-## Example permission matrix
+## Permission matrix
 
 | Capability                            | Lead expert | Collaborator | Attorney |
 | ------------------------------------- | :---------: | :----------: | :------: |
 | View shared/non-staged ledger records |     Yes     |     Yes      |   Yes    |
 | View staged records                   |     All     |   Own only   |    No    |
-| Create expert-side ledger record      |     Yes     |     Yes      |    No    |
-| Edit eligible accrued record          |     Yes     |   Own only   |    No    |
-| Publish staged record                 |     Yes     |      No      |    No    |
+| Create expert-side ledger records     |     Yes     |     Yes      |    No    |
+| Edit eligible accrued records         |     Yes     |   Own only   |    No    |
+| Publish staged records                |     Yes     |      No      |    No    |
+| Withdraw eligible expert-side records |     Yes     |   Own only   |    No    |
 | Import / preview CSV                  |     Yes     |     Yes      |    No    |
 
 ## Enforcement layers
 
-Authorization is intentionally not implemented in only one place.
+Authorization is enforced across multiple layers rather than relying on a single UI or middleware check.
 
 ### 1. Authenticated identity
 
-The backend derives the user identity from verified authentication claims rather than accepting a user ID from the request body.
+The backend derives identity from verified authentication claims rather than trusting a user identifier supplied in the request body.
 
-### 2. Engagement participation
+### 2. Explicit engagement participation
 
-Queries verify that the authenticated user is an explicit participant in the engagement.
+Backend access checks verify that the authenticated user is a participant in the requested engagement.
 
 ### 3. Query-level filtering
 
-Sensitive staged records are filtered in the database query so unauthorized rows are not fetched and then merely hidden in the UI.
+Sensitive staged records are filtered at the data-access layer so unauthorized rows are not fetched and then merely hidden in the interface.
 
 ### 4. Domain policy
 
-A small policy layer describes role/state transitions in the code. This provides a second check and keeps authorization rules testable independently from SQL.
+Role, ownership, lifecycle state, and transition rules are expressed in testable domain-policy functions.
 
 ### 5. Database protection
 
-Restrictive database access rules and constraints provide additional defense in depth.
+Database constraints and restrictive access policies provide additional defense in depth around application invariants and data access.
 
-## Why this matters.
+## Threats addressed by the model
 
-Legal matters can contain sensitive financial and case information. A secure design needs to protect against:
+The authorization design is intended to protect against scenarios such as:
 
-- guessing another engagement ID;
-- directly requesting a known ledger-record ID;
-- assuming same-firm membership grants matter access;
-- relying on hidden frontend controls as security;
-- accidental permission broadening during future query refactors.
+- requesting another engagement by guessing or obtaining its identifier;
+- directly targeting a ledger-entry identifier outside the caller's authorized scope;
+- treating same-organization membership as automatic matter access;
+- relying on hidden frontend controls as the only permission check;
+- broadening access accidentally when data-access queries are refactored;
+- assuming platform-administrator status is equivalent to engagement participation.
 
-The private test harness includes cases specifically aimed at these boundaries.
+These boundaries are exercised by the private backend readiness harness described in [Testing & Verification](TESTING.md).

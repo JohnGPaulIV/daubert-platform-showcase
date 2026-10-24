@@ -1,6 +1,6 @@
 # CSV Import Pipeline
 
-The CSV workflow is built as a **review-first ingestion pipeline**, not a direct bulk insert.
+Daubert's CSV workflow is a **review-first ingestion pipeline**, not a direct bulk-insert path.
 
 ## Pipeline
 
@@ -8,64 +8,69 @@ The CSV workflow is built as a **review-first ingestion pipeline**, not a direct
 flowchart LR
     U[Upload CSV] --> A[Authorize engagement access]
     A --> P[Parse file]
-    P --> D[Detect known source shape]
+    P --> D[Detect source shape]
     D --> M[Resolve / suggest column mapping]
     M --> N[Normalize values]
-    N --> R[Resolve activity against frozen rate snapshot]
-    R --> V[Validate each candidate]
+    N --> R[Resolve activity against engagement snapshot]
+    R --> V[Validate candidate rows]
     V --> H[Human review]
     H --> C{Ready?}
-    C -->|Correct / discard| H
-    C -->|Publish| T[Transactional write]
+    C -->|correct / discard| H
+    C -->|publish| T[Transactional write]
 ```
 
-## Why authorize before parsing?
+## Authorization before parsing
 
-Uploaded files consume CPU and memory. The backend verifies the caller's engagement access before doing the more expensive parsing work.
+The backend verifies engagement access before performing the more expensive parsing and normalization work.
+
+This prevents an unauthorized request from reaching deeper import processing simply because it contains a syntactically valid file.
 
 ## Source detection and mapping
 
-The current workflow recognizes common exported time-entry shapes and can fall back to a generic CSV path.
+The importer can recognize supported export shapes and fall back to a generic CSV mapping path.
 
-The importer separates:
+The workflow separates:
 
+- source-shape detection;
 - column mapping;
 - parsing;
 - normalization;
 - business validation;
-- rate resolution.
+- engagement-rate resolution.
 
-That makes it possible to support additional source formats without making the ledger itself dependent on a vendor-specific schema.
+Keeping these steps separate allows source formats to evolve without coupling the compensation ledger to one vendor-specific CSV schema.
 
-## Candidate rows
+## Review candidates
 
-Previewing a file produces review candidates rather than immediately writing ledger records.
+Previewing an import produces review candidates rather than immediately creating authoritative ledger records.
 
-A candidate can include:
+A review candidate can carry information such as:
 
-- normalized work data;
+- normalized work date;
 - normalized activity;
 - quantity;
 - source-provided rate;
-- server-resolved rate;
+- server-resolved engagement rate;
 - calculated amount;
 - warnings;
 - validation errors;
-- original source values.
+- original source values needed for review.
 
 ## Server-authoritative rate resolution
 
-A source-provided rate is never blindly copied into the authoritative applied-rate field.
+A rate supplied by an imported file is not blindly copied into the authoritative applied-rate field.
 
 Instead:
 
-1. the activity is mapped to the engagement's rate snapshot;
-2. the server resolves the applicable snapshot rate;
+1. the imported activity is mapped to the engagement's frozen rate schedule;
+2. the server resolves the applicable engagement rate;
 3. the amount is derived from that rate;
-4. a mismatch with the imported rate can be surfaced as a warning.
+4. a mismatch with the source rate can be surfaced as a review warning.
 
-## Human review
+This allows external data to assist ingestion without overriding the terms captured for the engagement.
 
-The UI allows the reviewer to correct or discard problematic rows before publication. Invalid rows must be resolved before the reviewed set is committed.
+## Human review and publication
 
-This keeps import convenience from bypassing business rules.
+The review interface allows invalid or questionable candidates to be corrected or discarded before publication.
+
+Publication occurs only after the candidate set satisfies the workflow's validation requirements, keeping import convenience from bypassing domain rules.

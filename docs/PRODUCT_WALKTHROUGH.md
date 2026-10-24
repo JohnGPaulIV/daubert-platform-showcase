@@ -1,72 +1,97 @@
 # Product Walkthrough
 
-This walkthrough is intended to accompnay the public screenshots.
+The screenshots in this walkthrough use synthetic demonstration data and are intended to show the product workflows associated with the engineering decisions documented elsewhere in this repository.
 
-## 1. Exper workspace
+## 1. Expert workspace
 
-The dashboard gives the authenticated user a concise view of their current engagements. Expert-side users also receive actions for creating a matter and managing reusable standing rates.
+![Expert dashboard](../assets/screenshots/01-dashboard.png)
 
-**Screenshot:** `assets/screenshots/01-dashboard.png`
+The expert workspace provides a concise view of current engagements together with expert-side actions such as engagement creation and standing-rate management.
 
-## 2. Create an engagement
+## 2. Engagement creation
 
-An expert creates a matter with case information and finacial terms such as payment terms, retainer, authorized budget, testimony information, and late-interest settings.
+![Create engagement workflow](../assets/screenshots/02-create-engagement.png)
 
-The expert's standing rate schedule is copied into an engagement-specific snapshot.
-
-**Screenshot:** `assets/screenshots/02-create-engagement.png`
+The engagement workflow captures matter information and financial terms, including payment terms, retainer information, authorized budget information, testimony details, and the rate schedule that will be preserved for the engagement.
 
 ## 3. Engagement overview
 
-The engagement workspace combines matter information with derived financial context.
+![Engagement overview](../assets/screenshots/03-engagement-overview.png)
 
-High-level metrics include:
+The engagement workspace combines matter details with derived financial context.
+
+The financial header presents values such as:
 
 - accrued compensation;
 - retainer remaining;
-- authorized budget utilization.
+- authorized-budget utilization.
 
-**Screenshot:** `assets/screenshots/03-engagement-overview.png`
+These values are derived from authoritative engagement and ledger state.
 
-## 4. Billing and compensation ledger
+## 4. Billing and compensation
 
-The billing view shows the frozen rate schedule and the compensation ledger for the engagement.
+### Engagement rate snapshot
 
-Expert-side participants can add eligible work. Counsel receives the shared published view without expert-side staging controls.
+![Engagement rate snapshot](../assets/screenshots/04a-rate-snapshot.png)
 
-**Screenshot:** `assets/screenshots/04-billing-ledger.png`
+The billing workflow preserves the rate schedule captured for the engagement, including matter-specific overrides that differ from the expert's standing rates.
 
-## 5. Review-first CSV import
+This keeps historical billing terms stable even if the expert later changes their default standing rates.
 
-Time-entry CSV files are parsed into review candidates before publication.
+### Compensation ledger
 
-The review interface can show:
+![Compensation ledger](../assets/screenshots/04b-compensation-ledger.png)
 
-- rows ready to publish;
-- warnings such as a source-rate mismatch;
-- validation errors requiring correction;
-- discarded rows.
+The compensation ledger records expert-side work across manual and imported entries while applying the engagement's authoritative rate schedule.
 
-**Screenshot:** `assets/screenshots/05-csv-review.png`
+Expert-side participants can contribute work according to their permissions, while counsel receives the shared, non-staged financial view without access to expert-side staging or publication controls.
 
-## 6. Standing rate schedule
+## 5. CSV review workflow
 
-Experts can maintain reusable rates for activities such as analysis, report drafting, deposition work, testimony, travel, or **custom activities**.
+![CSV review workflow](../assets/screenshots/05-csv-review.png)
 
-changes apply to future engagement snapshots and do not silently rewrite existing ones.
+Imported time-entry data is converted into review candidates before publication.
 
-**Screenshot:** `assets/screenshots/06-standing-rates.png`
+The workflow distinguishes rows that are ready to publish from rows containing warnings or validation errors. Source-rate mismatches can be surfaced during review while authoritative calculations continue to use the engagement snapshot.
+
+## 6. Standing-rate management
+
+![Standing rate management](../assets/screenshots/06-standing-rates.png)
+
+Experts can maintain reusable activity rates, including custom activities.
+
+Standing-rate changes affect future engagement configuration without silently rewriting the rate snapshot preserved for an existing engagement.
 
 ## 7. Counsel view
 
-A counsel-side screenshot demonstrates that the UI is role aware and that the expert-side staging/editing controls are not exposted to attorneys.
+The counsel-side experience demonstrates that the same engagement data can be presented through a different permission model without changing the underlying matter.
 
-The backend independently enforces the same restriction.
+### Shared engagement overview
 
-**Screenshot:** `assets/screenshots/07-attorney-read-only.png`
+![Counsel engagement overview](../assets/screenshots/07a-engagement-overview.png)
 
-## 8. Responsive shell
+Counsel can view the same engagement terms and shared financial summary available to authorized participants, including accrued compensation, retainer information, authorized-budget utilization, and matter terms.
 
-A movile screenshot can demonstrate that the authenticated shell, navigation, cards, and primary workflows remain usable at smaller widths.
+This provides a consistent financial view across the engagement while preserving role-specific controls.
 
-**Screenshot:** `assets/screenshots/08-mobile.png`
+### Engagement rates
+
+![Counsel billing rates](../assets/screenshots/07b-billing-rates.png)
+
+Counsel can view the rate schedule captured for the engagement, including matter-specific overrides that differ from the expert's standing rates.
+
+The rates are visible for transparency, while rate-management controls remain on the expert side.
+
+### Compensation ledger
+
+![Counsel compensation ledger](../assets/screenshots/07c-compensation-ledger.png)
+
+Counsel can review the shared, non-staged compensation ledger for the engagement.
+
+Expert-side staging, editing, CSV import, publication, and other mutation controls remain unavailable to counsel. These restrictions are enforced by the backend authorization model in addition to the role-aware interface.
+
+## 8. Responsive application shell
+
+![Responsive application view](../assets/screenshots/08-mobile.png)
+
+The application shell and primary workflows are designed to remain usable across desktop and smaller viewport layouts.

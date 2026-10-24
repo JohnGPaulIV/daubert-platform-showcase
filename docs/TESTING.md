@@ -1,82 +1,92 @@
 # Testing & Verification
 
-The current private code snapshot behind this showcase contains **45 Node test cases across four TypeScript test files**, plus a separate backend-focused authorization/readiness harness.
+The private code snapshot represented by this showcase contains **45 Node test cases across four TypeScript test files**, together with a separate backend-focused authorization/readiness harness.
 
-The source tests themselves are private; this document describes the verification strategy.
+The production tests and environment-specific fixtures remain private; this document describes the verification strategy and covered boundaries.
 
-## Unit-level coverage
+## Test inventory
 
-### Financial derivations
+| Test area                    | Test cases |
+| ---------------------------- | ---------: |
+| Financial and derived values |         24 |
+| Ledger authorization policy  |         11 |
+| CSV import behavior          |          5 |
+| Ledger input validation      |          5 |
+| **Total**                    |     **45** |
 
-Tests cover behaviors such as:
+## Financial and derived-value tests
 
-- due-date and aging calculations;
-- ledger amount calculation;
+The financial test suite covers behaviors including:
+
+- invoice due-date calculation;
+- aging calculations;
+- ledger-entry amount calculation;
 - accrued and staged totals;
-- retainer remaining and retainer percentage;
+- retainer remaining;
+- retainer percentage;
 - authorized-budget utilization;
 - safe-integer handling for monetary values.
 
-### Ledger validation
+## Ledger validation tests
 
-Tests cover input invariants such as:
+Input-validation coverage includes rules such as:
 
 - note length and normalization;
-- valid/invalid quantities;
-- valid lifecycle mutation inputs.
+- positive/valid quantities;
+- supported ledger mutation inputs.
 
-### Authorization policies
+## Authorization-policy tests
 
-Tests exercise role/state combinations such as:
+Policy tests exercise combinations of:
 
-- lead-expert edit permissions;
+- lead-expert permissions;
 - collaborator ownership restrictions;
 - attorney read-only behavior;
-- staged-to-published transitions;
-- withdrawal rules;
+- staged-to-accrued publication;
+- withdrawal transitions.
 
-### CSV handling
+## CSV import tests
 
-Tests cover areas such as:
+CSV-related tests cover areas including:
 
-- common export-header detection;
+- known export-header detection;
 - generic mapping behavior;
-- parsing;
+- parsing and normalization;
 - snapshot-based rate resolution;
-- mismatch/error handling.
+- mismatch and validation behavior.
 
-## Integration / readiness verification
+## Backend readiness harness
 
-A shell-based readiness harness targets the backend directly so frontend UI behavior cannot create a false security pass.
+A separate shell-based readiness harness targets backend boundaries directly rather than relying on frontend visibility.
 
-The harness includes checks for:
+The harness includes scenarios for:
 
 1. unauthenticated request rejection;
 2. cross-engagement isolation;
 3. staged-row isolation;
 4. direct-ID mutation attempts;
-5. financial-summary consistency across allowed roles;
+5. financial-summary consistency across authorized roles;
 6. CSV preview authorization;
 7. CSV publication authorization and server-authoritative fields;
 8. ledger create/edit/publish permissions;
-9. proof that same-organization membership alone does not grant engagement access;
-10. separation between platform-administrator status and matter participation.
+9. same-organization membership without matter participation;
+10. separation between platform-administrator status and engagement participation.
 
-## Why test the backend directly?
+## Why verify the backend directly?
 
-A hidden button is not an authorization control.
+A hidden interface control is not an authorization boundary.
 
-Testing the HTTP/service boundary directly verifies that a caller cannot bypass the UI and perform an operation the backend should reject.
+Direct verification of the HTTP/service boundary tests whether a caller can bypass the UI and perform an operation the backend should reject.
 
-## Public-repo policy
+## Public-repository boundary
 
-This showcase intentionally does not include:
+The public showcase excludes:
 
 - test credentials;
-- private environment files;
+- environment files;
 - disposable test-account identifiers;
-- internal engagement IDs;
-- exact production endpoints;
-- the complete readiness scripts.
+- internal engagement identifiers;
+- environment-specific endpoint configuration;
+- the complete readiness scripts and setup topology.
 
-The goal is to demonstrate engineering rigor without distributing a map of our private system.
+This preserves the testing strategy as portfolio evidence without publishing the private system's operational test environment.
