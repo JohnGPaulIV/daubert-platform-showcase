@@ -106,7 +106,7 @@ The engagement workspace combines matter details with derived financial context 
 
 ### Compensation ledger
 
-![Daubert compensation ledger](assets/screenshots/04-billing-ledger.png)
+![Daubert compensation ledger](assets/screenshots/04b-compensation-ledger.png)
 
 The billing workflow pairs the engagement's frozen rate schedule with a role-aware compensation ledger.
 
