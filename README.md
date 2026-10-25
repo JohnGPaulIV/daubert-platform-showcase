@@ -1,4 +1,4 @@
-# Daubert Platform — Engineering Showcase
+# Daubert Platform - Engineering Showcase
 
 > **Public engineering case study.** Daubert is an active commercial project; production source code, credentials, internal deployment configuration, and non-public data are intentionally excluded from this repository.
 
@@ -160,10 +160,10 @@ The internal test harness and its environment-specific fixtures remain private.
 
 The files in [`examples/`](examples/) are intentionally simplified rewrites of selected engineering patterns. They are **not copied production source** and omit private schemas, route structure, identifiers, infrastructure details, and proprietary implementation logic.
 
-- [`authorization-policy.ts`](examples/authorization-policy.ts) — role, ownership, and lifecycle-aware access decisions
-- [`financial-calculations.ts`](examples/financial-calculations.ts) — integer-cent financial calculations
-- [`service-boundary.ts`](examples/service-boundary.ts) — validation, authorization, transactions, and server-authoritative writes
-- [`csv-import-pipeline.ts`](examples/csv-import-pipeline.ts) — review candidates and snapshot-based rate resolution
+- [`authorization-policy.ts`](examples/authorization-policy.ts) - role, ownership, and lifecycle-aware access decisions
+- [`financial-calculations.ts`](examples/financial-calculations.ts) - integer-cent financial calculations
+- [`service-boundary.ts`](examples/service-boundary.ts) - validation, authorization, transactions, and server-authoritative writes
+- [`csv-import-pipeline.ts`](examples/csv-import-pipeline.ts) - review candidates and snapshot-based rate resolution
 
 ## Documentation
 

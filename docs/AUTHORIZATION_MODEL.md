@@ -12,9 +12,9 @@ This distinction reduces the risk of a multi-tenant authorization error in which
 
 The current engagement model distinguishes three participant roles:
 
-- **Lead expert** — can review all staged expert-side work and controls publication of staged entries.
-- **Collaborator** — can contribute expert-side work, with narrower visibility and mutation permissions.
-- **Attorney** — participates on the counsel side and receives access to the shared/non-staged ledger without expert-side staging privileges.
+- **Lead expert** - can review all staged expert-side work and controls publication of staged entries.
+- **Collaborator** - can contribute expert-side work, with narrower visibility and mutation permissions.
+- **Attorney** - participates on the counsel side and receives access to the shared/non-staged ledger without expert-side staging privileges.
 
 Platform administration is handled separately. Administrative status does not automatically make an administrator a participant in a matter.
 
